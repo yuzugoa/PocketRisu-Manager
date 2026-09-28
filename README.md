@@ -16,6 +16,7 @@ Risu Manager는 Android에서 호환되는 Risu 서버의 설치와 실행을 �
 - [빌드와 검증](#빌드와-검증)
 - [문제 해결](#문제-해결)
 - [상세 문서](#상세-문서)
+- [라이선스](#라이선스)
 
 ## 지원 범위와 요구 사항
 
@@ -233,3 +234,9 @@ node tools/test-termux-helper-exporter-sql.cjs
 - [PocketRisu 업데이트](docs/pocketrisu-updates.md)
 - [복구 지점과 롤백](docs/pocketrisu-rollbacks.md)
 - [제3자 소프트웨어 고지](THIRD_PARTY_NOTICES.md)
+
+## 라이선스
+
+Risu Manager의 자체 코드는 [Apache License 2.0](LICENSE)에 따라 배포됩니다. Copyright 2026 yuzugoa.
+
+Android/Kotlin 라이브러리 등 제3자 구성요소에는 각 프로젝트의 라이선스가 적용됩니다. 자세한 내용은 [제3자 소프트웨어 고지](THIRD_PARTY_NOTICES.md)를 참고하세요. Manager가 별도로 설치하는 PocketRisu와 Haejeok RisuAI 서버에는 각 상위 프로젝트의 GPL-3.0 라이선스가 적용됩니다.
