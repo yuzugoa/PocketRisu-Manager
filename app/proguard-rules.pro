@@ -1,0 +1,3 @@
+-keepattributes *Annotation*
+-keepclassmembers class **$$serializer { *; }
+-keep,includedescriptorclasses class io.github.risumanager.**$$serializer { *; }

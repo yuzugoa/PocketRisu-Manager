@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Risu Manager</string>
+    <string name="operation_channel_name">Risu operations</string>
+    <string name="operation_channel_description">PocketRisu installation and management progress</string>
+    <string name="update_action">Update</string>
+    <string name="update_checking">Checking update…</string>
+    <string name="update_confirm_title">Confirm PocketRisu update</string>
+    <string name="update_confirm_action">Create recovery point and update</string>
+    <string name="update_private_recovery_notice">Manager recovery points are private internal backups and can contain credentials.</string>
+    <string name="update_low_disk_notice">Low disk space never causes existing recovery points to be deleted automatically or an update to proceed without a verified recovery point.</string>
+    <string name="update_recovery_required">Recovery required</string>
+    <string name="update_recovery_cleanup_pending">Expired — cleanup pending</string>
+    <string name="update_recovery_pinned">Pinned</string>
+    <string name="update_recovery_in_use">In use</string>
+</resources>
