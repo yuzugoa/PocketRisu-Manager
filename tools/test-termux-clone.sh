@@ -31,6 +31,10 @@ mkdir -p "$fake"
 cat > "$fake/node" <<'EOF'
 #!/usr/bin/env sh
 set -eu
+if [ "${1:-}" = - ]; then
+    [ "${CURL_HEALTH_FAIL:-0}" != 1 ]
+    exit $?
+fi
 if [ "${1:-}" = -e ]; then
     script="$2"; shift 2
     case "$script" in

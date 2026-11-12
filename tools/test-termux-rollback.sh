@@ -60,6 +60,11 @@ tree_hash() {
 }
 if [ "${1:-}" = -p ]; then printf '%s\n' '22.12.0'; exit 0; fi
 if [ "${1:-}" = --version ]; then printf '%s\n' 'v22.12.0'; exit 0; fi
+if [ "${1:-}" = - ]; then
+    [ "${CURL_BLOCK:-0}" = 1 ] && sleep 30
+    [ "${CURL_HEALTH_FAIL:-0}" != 1 ]
+    exit $?
+fi
 if [ "${1:-}" = -e ]; then
     script="$2"; shift 2
     case "$script" in
@@ -155,7 +160,7 @@ EOF
 chmod +x "$fake"/*
 
 HOME="$sandbox" sh "$installer" > "$sandbox/bootstrap.out"
-assert_contains "$sandbox/bootstrap.out" '"helperVersion":19'
+assert_contains "$sandbox/bootstrap.out" '"helperVersion":26'
 
 instance_id=pocketrisu-rollback
 instance="$sandbox/.risu-manager/instances/$instance_id"; repo="$instance/repo"

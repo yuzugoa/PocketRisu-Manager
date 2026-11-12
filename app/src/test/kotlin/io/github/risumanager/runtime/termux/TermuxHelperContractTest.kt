@@ -24,9 +24,9 @@ class TermuxHelperContractTest {
 
     @Test fun androidAndShellAgreeOnVersionAndStructuredConfigCommands() {
         val source = helperSource()
-        assertThat(TermuxHelperClient.EXPECTED_VERSION).isEqualTo(24)
-        assertThat(source).contains("HELPER_VERSION=\"24\"")
-        assertThat(source).contains("\"operation\":\"bootstrap\",\"helperVersion\":24")
+        assertThat(TermuxHelperClient.EXPECTED_VERSION).isEqualTo(26)
+        assertThat(source).contains("HELPER_VERSION=\"26\"")
+        assertThat(source).contains("\"operation\":\"bootstrap\",\"helperVersion\":26")
         assertThat(source).contains("config-get)")
         assertThat(source).contains("with_instance_lock \"${'$'}1\" config-get command_config_get \"${'$'}@\"")
         assertThat(source).contains("with_instance_lock \"${'$'}1\" config-set command_config_set \"${'$'}@\"")

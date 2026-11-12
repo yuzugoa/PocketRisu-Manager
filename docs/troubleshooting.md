@@ -45,7 +45,9 @@ The report records structured stages while excluding server logs and user data.
 
 ## Android stops the process
 
-Risu Manager coordinates Termux's wake lock, but Android and vendor memory policies can still stop background work. Exclude Termux—not only Risu Manager—from aggressive battery optimization if this is acceptable for your device. No Android application can guarantee indefinite background execution.
+Risu Manager coordinates Termux's wake lock and keeps a small Termux watcher for each running server. If Android kills the Node process, the watcher retries a start while the instance is meant to be running. Stop, backup, clone, update, and rollback still control their own server state. The watcher records recovery attempts in the instance's `run/watch.log` and exits after Stop.
+
+Android and vendor memory policies can still interrupt the server briefly or kill Termux and its watcher together. Set Termux and, if installed, Termux:Boot to unrestricted battery use. On Samsung devices, also review **Battery and device care → Battery → Background usage limits → Never sleeping apps**. If a 502 recurs, check the server and watcher logs and capture an Android logcat around the time of the failure. A wake lock or battery exception cannot guarantee indefinite background execution.
 
 ## Haejeok Android APK installation is unavailable
 

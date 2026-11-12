@@ -144,7 +144,7 @@ EOF
 chmod +x "$fake"/*
 
 HOME="$sandbox" sh "$installer" > "$sandbox/bootstrap.out"
-assert_contains "$sandbox/bootstrap.out" '"helperVersion":24'
+assert_contains "$sandbox/bootstrap.out" '"helperVersion":26'
 
 # Manager update storage must never follow a pre-existing symlink outside its
 # private root.

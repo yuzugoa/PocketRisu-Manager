@@ -395,7 +395,7 @@ class TermuxHelperClient(
     }
 
     companion object {
-        const val EXPECTED_VERSION = 24
+        const val EXPECTED_VERSION = 26
         const val HANDSHAKE_VALUE = "RISU_MANAGER_OK"
         private val TOKEN = Regex("^[0-9a-f]{64}$")
         private val RECOVERY_ID = Regex("^[A-Za-z0-9_-]{8,80}$")

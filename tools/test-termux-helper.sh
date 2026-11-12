@@ -9,7 +9,7 @@ trap 'rm -rf "$sandbox"' EXIT INT TERM
 helper="$sandbox/.risu-manager/bin/risu-manager"
 
 HOME="$sandbox" sh "$installer" >/dev/null
-HOME="$sandbox" sh "$helper" version | grep -F '"helperVersion":19' >/dev/null
+HOME="$sandbox" sh "$helper" version | grep -F '"helperVersion":26' >/dev/null
 
 HOME="$sandbox" sh "$helper" config-get test-instance | grep -F '"port":6001' >/dev/null
 HOME="$sandbox" sh "$helper" config-set test-instance 6123 LOCAL_NETWORK HTTP 512 30 60 100 51200 | grep -F '"port":6123' >/dev/null

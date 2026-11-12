@@ -281,7 +281,7 @@ cat > "$TMP" <<'RISU_MANAGER_HELPER'
 #!/data/data/com.termux/files/usr/bin/sh
 set -u
 
-HELPER_VERSION="24"
+HELPER_VERSION="26"
 ROOT="${HOME:?}/.risu-manager"
 BIN="$ROOT/bin/risu-manager"
 INSTANCES="$ROOT/instances"
@@ -889,6 +889,64 @@ release_wake_lock_if_idle() {
     if [ "$(running_count)" -eq 0 ]; then
         termux-wake-unlock >/dev/null 2>&1 || true
     fi
+}
+
+watch_requested_file() { printf '%s/run/keep-running' "$(instance_dir "$1")"; }
+watch_pid_file() { printf '%s/run/watcher.pid' "$(instance_dir "$1")"; }
+
+watcher_running() (
+    instance_id="$1"
+    pid_file="$(watch_pid_file "$instance_id")"
+    [ -f "$pid_file" ] && [ ! -L "$pid_file" ] || return 1
+    pid="$(sed -n '1p' "$pid_file")"
+    case "$pid" in ''|*[!0-9]*) return 1 ;; esac
+    kill -0 "$pid" 2>/dev/null || return 1
+    cmdline="$(tr '\000' ' ' < "/proc/$pid/cmdline" 2>/dev/null || true)"
+    case "$cmdline" in *"$BIN _watch $instance_id"*) return 0 ;; *) return 1 ;; esac
+)
+
+ensure_watcher() (
+    instance_id="$1"
+    watcher_running "$instance_id" && return 0
+    run="$(instance_dir "$instance_id")/run"
+    pid_file="$(watch_pid_file "$instance_id")"
+    [ ! -L "$pid_file" ] || return 1
+    nohup sh "$BIN" _watch "$instance_id" >> "$run/watch.log" 2>&1 < /dev/null &
+    printf '%s\n' "$!" > "$pid_file"
+)
+
+request_watch() (
+    instance_id="$1"
+    marker="$(watch_requested_file "$instance_id")"
+    [ ! -L "$marker" ] || return 1
+    : > "$marker" || return 1
+    ensure_watcher "$instance_id"
+)
+
+command_watch() {
+    instance_id="$1"
+    marker="$(watch_requested_file "$instance_id")"
+    pid_file="$(watch_pid_file "$instance_id")"
+    trap 'if [ "$(sed -n "1p" "$pid_file" 2>/dev/null || true)" = "$$" ]; then rm -f "$pid_file"; fi' EXIT
+    trap 'exit 0' HUP INT TERM
+    while [ -f "$marker" ] && [ ! -L "$marker" ]; do
+        pid="$(read_pid "$instance_id" 2>/dev/null || true)"
+        if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then
+            printf '%s\n' 'Server process disappeared; checking whether recovery is allowed.'
+            if ! sh "$BIN" _watch-recover "$instance_id" >> "$(instance_dir "$instance_id")/run/watch.log" 2>&1; then
+                sleep 5
+            fi
+        fi
+        sleep 2
+    done
+}
+
+command_watch_recover() {
+    instance_id="$1"
+    marker="$(watch_requested_file "$instance_id")"
+    [ -f "$marker" ] && [ ! -L "$marker" ] || return 0
+    valid_process "$instance_id" && return 0
+    command_start "$instance_id"
 }
 
 load_profile() {
@@ -3296,6 +3354,7 @@ command_start() {
     if valid_process "$instance_id"; then
         pid="$(read_pid "$instance_id")"
         if http_healthy "$port" "$protocol" "$repo" "$profile_health_path" "$(tls_state_file "$instance_id")"; then state="RUNNING"; else state="UNHEALTHY"; fi
+        request_watch "$instance_id" || printf '%s\n' 'The server watcher could not be started.' >> "$log"
         printf '{"ok":true,"operation":"start","instanceId":"%s","state":"%s","pid":%s,"port":%s,"protocol":"%s","alreadyRunning":true}\n' "$instance_id" "$state" "$pid" "$port" "$protocol"
         return 0
     fi
@@ -3348,6 +3407,7 @@ command_start() {
             pid="$(read_pid "$instance_id")"
             write_config_file "$(applied_config_file "$instance_id")" "$cfg_port" "$cfg_bind_scope" "$cfg_protocol" "$cfg_body_mb" "$cfg_save_seconds" "$cfg_snapshot_minutes" "$cfg_snapshot_count" "$cfg_snapshot_mb"
             rm -f "$instance/manager/last-apply-error"
+            request_watch "$instance_id" || printf '%s\n' 'The server watcher could not be started.' >> "$log"
             printf '{"ok":true,"operation":"start","instanceId":"%s","state":"RUNNING","pid":%s,"port":%s,"protocol":"%s","alreadyRunning":false}\n' "$instance_id" "$pid" "$port" "$protocol"
             return 0
         fi
@@ -3389,8 +3449,10 @@ command_status() {
     if valid_process "$instance_id"; then
         pid="$(read_pid "$instance_id")"
         if http_healthy "$port" "$protocol" "$repo" "$profile_health_path" "$(tls_state_file "$instance_id")"; then state="RUNNING"; else state="UNHEALTHY"; fi
+        request_watch "$instance_id" || true
         printf '{"ok":true,"operation":"status","instanceId":"%s","state":"%s","installed":true,"pid":%s,"port":%s,"protocol":"%s","commit":"%s"}\n' "$instance_id" "$state" "$pid" "$port" "$protocol" "$commit"
     else
+        [ ! -f "$(watch_requested_file "$instance_id")" ] || ensure_watcher "$instance_id" || true
         rm -f "$instance/run/server.pid"
         printf '{"ok":true,"operation":"status","instanceId":"%s","state":"STOPPED","installed":true,"port":%s,"protocol":"%s","commit":"%s"}\n' "$instance_id" "$port" "$protocol" "$commit"
     fi
@@ -3401,6 +3463,7 @@ command_stop() {
     instance_id="$1"
     valid_identifier "$instance_id" || { emit_error "INVALID_INSTANCE_ID" "The instance ID is invalid."; return 2; }
     instance="$(instance_dir "$instance_id")"; run="$instance/run"
+    rm -f "$(watch_requested_file "$instance_id")"
     metadata="$instance/metadata.json"; variant_id="$(sed -n 's/.*"variantId":"\([a-z0-9-]*\)".*/\1/p' "$metadata" 2>/dev/null | sed -n '1p')"
     load_profile "$variant_id" || profile_storage="none"
     if ! valid_process "$instance_id"; then
@@ -3535,6 +3598,16 @@ case "${1:-}" in
         valid_operation_id "$1" && valid_identifier "$2" && valid_recovery_id "$3" && valid_recovery_id "$4" && valid_uint "$5" || exit 2
         with_instance_lock "$2" "$1" do_rollback "$@"
         ;;
+    _watch)
+        shift
+        [ "$#" -eq 1 ] && valid_identifier "$1" || exit 2
+        command_watch "$1"
+        ;;
+    _watch-recover)
+        shift
+        [ "$#" -eq 1 ] && valid_identifier "$1" || exit 2
+        with_instance_lock "$1" watch-recover command_watch_recover "$@"
+        ;;
     start)
         shift
         [ "$#" -eq 1 ] || { emit_error "INVALID_ARGUMENT" "start requires an instance ID."; exit 2; }
@@ -3563,4 +3636,4 @@ RISU_MANAGER_HELPER
 
 chmod 700 "$TMP"
 mv -f "$TMP" "$TARGET"
-printf '{"ok":true,"operation":"bootstrap","helperVersion":24}\n'
+printf '{"ok":true,"operation":"bootstrap","helperVersion":26}\n'
